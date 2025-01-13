@@ -24,6 +24,7 @@ Expected Output: 1
  */
 
 using System;
+using System.Linq.Expressions;
 using System.Runtime.InteropServices;
 
 class Program
@@ -32,8 +33,12 @@ class Program
     {
         try
         {
-            int places = GetValueForPlacesAndChips($"Введите количество мест за столом: ");
-            int[] chips = GetChips(places);
+            /*int places = GetValueForPlacesAndChips($"Введите количество мест за столом: ");
+            int[] chips = GetChips(places);*/
+            Console.WriteLine("Введите количество фишек для каждого места через пробел:");
+            string input = Console.ReadLine();
+            int[] chips = Array.ConvertAll(input.Split(' '), int.Parse);
+
             int moves = CalculateMinValues(chips);
             Console.WriteLine($"Минимальное количество перемещений: {moves}");
         }
@@ -43,37 +48,75 @@ class Program
         }
     }
 
-    static int GetValueForPlacesAndChips(string message)
-    {
-        Console.WriteLine(message);
-        if (!int.TryParse(Console.ReadLine(), out int result) || result < 0)
-            throw new ArgumentException($"Введите положительное целое число");
-        return result;
-    }
-
-    static int[] GetChips(int count_place)
-    {
-        int[] chips = new int[count_place];
-        for (int i = 0; i < count_place; i++)
+    #region был создан механизм лучше
+    /*    static int GetValueForPlacesAndChips(string message)
         {
-            chips[i] = GetValueForPlacesAndChips($"Введите количество фишек для места {i + 1}:");
+            Console.WriteLine(message);
+            if (!int.TryParse(Console.ReadLine(), out int result) || result < 0)
+                throw new ArgumentException($"Введите положительное целое число");
+            return result;
         }
-        return chips;
-    }
+
+        static int[] GetChips(int count_place)
+        {
+            int[] chips = new int[count_place];
+            for (int i = 0; i < count_place; i++)
+            {
+                chips[i] = GetValueForPlacesAndChips($"Введите количество фишек для места {i + 1}:");
+            }
+            return chips;
+        }*/
+    #endregion
 
     static int CalculateMinValues(int[] chips)
     {
-        int totalChips = chips.Sum();
-        int places_count = chips.Length;
-        if (totalChips % places_count != 0)
-            throw new InvalidOperationException($"Невозможно равномерно распределить имеющиеся фишки");
-
-        int target = totalChips / places_count;
+        int chips_length = chips.Length;
+        int chips_sum = chips.Sum();
+        int target = chips_sum / chips_length;
         int moves = 0;
-        foreach (var chip in chips)
+
+        //проверка на распределение
+        if (chips_sum % chips_length != 0)
+            throw new Exception($"Невозможно равномерно распределить");
+
+        //проверка на одинаковые числа
+        bool allEqual = true;
+        for (int i = 0; i < chips_length; i++)
         {
-            if (chip > target)
-                moves += chip - target;
+            if (chips[i] != target)
+            {
+                allEqual = false;
+                break;
+            }
+        }
+
+        if (allEqual) //все фишки имеются однаковое кол-во фишек
+            return 0;
+
+        for (int i = 0; i < chips_length; i++)
+        {
+            // Если текущее место больше places_count
+            if (chips[i] > chips_length)
+            {
+                int excess = chips[i] - target;
+                chips[i] -= excess; // Уменьшаем текущее место до places_count
+                if (i < chips_length - 1)
+                {
+                    chips[i + 1] += excess; // Передаем излишки на next chip
+                    moves += excess; // Увеличиваем count ходов на count transferred chips
+                }
+            }
+            // Если текущее место меньше places_count
+            else if (chips[i] < target)
+            {
+                int deficit = target - chips[i];
+                chips[i] += deficit; // Увеличиваем текущее место до places_count
+                if (i > 0)
+                {
+                    chips[i - 1] -= deficit; // Получаем недостающие фишки из предыдущего места
+                    moves += deficit; // Увеличиваем количество ходов на количество полученных фишек
+                }
+            }
         }
         return moves;
     }
