@@ -33,43 +33,21 @@ class Program
     {
         try
         {
-            Console.WriteLine("Введите количество фишек для каждого места через пробел:");
-            string input = Console.ReadLine();
-            List<int> chips = new List<int>();
+            List<int> chips = BasicFunctions.GetChipsFromInput();
 
-            foreach (var temp in input.Split(' ')) //вынести в отдельную функцию
-            {
-                if (int.TryParse(temp, out int chip))
-                    chips.Add(chip);
-                else
-                    throw new Exception($"{chip} является некорректным значением, введите целое число");
-            }
             int moves = 0;
             int chips_sum = chips.Sum();
             int average = chips_sum / chips.Count;
 
-            //проверка на распределение, вынести в отдельную функцию
-            if (chips_sum % chips.Count != 0)
-            {
-                LOG($"Невозможно равномерно распределить фишки");
-                return;
-            }
-            //проверка на одинаковые числа, вынести в отдельную функцию
-            bool allEqual = true;
-            for (int i = 0; i < chips.Count; i++)
-            {
-                if (chips[i] != average)
-                {
-                    allEqual = false;
-                    break;
-                }
-            }
+            bool ravnover_chips = Checkout.ravnomer_chips(chips);
 
-            if (allEqual) //все места имеют однаковое кол-во фишек
-            {
-                LOG($"Перемещения ненужны, у каждого места одинаковое количество фишек");
-                return;
-            }
+            if (ravnover_chips)
+                throw new Exception($"Невозможно равномерно распределить фишки");
+
+            bool odinak_chips = Checkout.odinak_chips(chips, average);
+
+            if (odinak_chips)
+                throw new Exception($"Перемещения ненужны, у каждого места одинаковое количество фишек");
 
             #region govno-code, need change mind... 
             //вынести в отдельные функции
@@ -131,109 +109,53 @@ class Program
             }
             #endregion
 
-            Console.WriteLine($"Минимальное количество перемещений: {moves}");
+            BasicFunctions.LOG($"Минимальное количество перемещений: {moves}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Произошла ошибка: {ex.Message}");
-        }
-
-        static void LOG(string text) 
-        {
-            Console.WriteLine(text);
+            BasicFunctions.LOG($"Произошла ошибка: {ex.Message}");
         }
     }
-    #region некорректная логика функций
-/*    static void Main(string[] args)
-    {
-        try
-        {
-            *//*int places = GetValueForPlacesAndChips($"Введите количество мест за столом: ");
-            int[] chips = GetChips(places);*//*
-            Console.WriteLine("Введите количество фишек для каждого места через пробел:");
-            string input = Console.ReadLine();
-            int[] chips = Array.ConvertAll(input.Split(' '), int.Parse);
+}
 
-            int moves = CalculateMinValues(chips);
-            Console.WriteLine($"Минимальное количество перемещений: {moves}");
-        }
-        catch (Exception ex)
+public class BasicFunctions() 
+{
+    public static List<int> GetChipsFromInput()
+    {
+        Console.WriteLine("Введите количество фишек для каждого места через пробел:");
+        string input = Console.ReadLine();
+        List<int> chips = new List<int>();
+
+        foreach (var temp in input.Split(' '))
         {
-            Console.WriteLine($"Произошла ошибка: {ex.Message}");
+            if (int.TryParse(temp, out int chip))
+                chips.Add(chip);
+            else
+                throw new FormatException($"{temp} является некорректным значением, введите целое число");
         }
+        return chips;
+    }
+    public static void LOG(string text)
+    {
+        Console.WriteLine(text); 
+    }
+}
+
+public class Checkout()
+{
+    public static bool ravnomer_chips(List<int> chips)
+    {
+        bool ravnomer = false;
+        if (chips.Sum() % chips.Count != 0)
+            ravnomer = true;
+        return ravnomer;
     }
 
-    #region был создан механизм лучше
-    *//*    static int GetValueForPlacesAndChips(string message)
-        {
-            Console.WriteLine(message);
-            if (!int.TryParse(Console.ReadLine(), out int result) || result < 0)
-                throw new ArgumentException($"Введите положительное целое число");
-            return result;
-        }
-
-        static int[] GetChips(int count_place)
-        {
-            int[] chips = new int[count_place];
-            for (int i = 0; i < count_place; i++)
-            {
-                chips[i] = GetValueForPlacesAndChips($"Введите количество фишек для места {i + 1}:");
-            }
-            return chips;
-        }*//*
-    #endregion
-
-    static int CalculateMinValues(int[] chips)
+    public static bool odinak_chips(List<int> chips, int average)
     {
-        int chips_length = chips.Length;
-        int chips_sum = chips.Sum();
-        int target = chips_sum / chips_length;
-        int moves = 0;
-
-        //проверка на распределение
-        if (chips_sum % chips_length != 0)
-            throw new Exception($"Невозможно равномерно распределить");
-
-        //проверка на одинаковые числа
-        bool allEqual = true;
-        for (int i = 0; i < chips_length; i++)
-        {
-            if (chips[i] != target)
-            {
-                allEqual = false;
-                break;
-            }
-        }
-
-        if (allEqual) //все фишки имеются однаковое кол-во фишек
-            return 0;
-
-        for (int i = 0; i < chips_length; i++)
-        {
-            // Если текущее место больше places_count
-            if (chips[i] > chips_length)
-            {
-                int excess = chips[i] - target;
-                chips[i] -= excess; // Уменьшаем текущее место до places_count
-                if (i < chips_length - 1)
-                {
-                    chips[i + 1] += excess; // Передаем излишки на next chip
-                    moves += excess; // Увеличиваем count ходов на count transferred chips
-                }
-            }
-            // Если текущее место меньше places_count
-            else if (chips[i] < target)
-            {
-                int deficit = target - chips[i];
-                chips[i] += deficit; // Увеличиваем текущее место до places_count
-                if (i > 0)
-                {
-                    chips[i - 1] -= deficit; // Получаем недостающие фишки из предыдущего места
-                    moves += deficit; // Увеличиваем количество ходов на количество полученных фишек
-                }
-            }
-        }
-        return moves;
-    }*/
-    #endregion
+        bool odinak = false;
+        if (chips.All(x => x == average))
+            odinak = true;
+        return odinak;
+    }
 }
