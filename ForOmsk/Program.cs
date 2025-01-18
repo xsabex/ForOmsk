@@ -33,8 +33,123 @@ class Program
     {
         try
         {
-            /*int places = GetValueForPlacesAndChips($"Введите количество мест за столом: ");
-            int[] chips = GetChips(places);*/
+            Console.WriteLine("Введите количество фишек для каждого места через пробел:");
+            string input = Console.ReadLine();
+            List<int> chips = new List<int>();
+
+            foreach (var temp in input.Split(' ')) //вынести в отдельную функцию
+            {
+                if (int.TryParse(temp, out int chip))
+                    chips.Add(chip);
+                else
+                    throw new Exception($"{chip} является некорректным значением, введите целое число");
+            }
+            int moves = 0;
+            int chips_sum = chips.Sum();
+            int average = chips_sum / chips.Count;
+
+            //проверка на распределение, вынести в отдельную функцию
+            if (chips_sum % chips.Count != 0)
+            {
+                LOG($"Невозможно равномерно распределить фишки");
+                return;
+            }
+            //проверка на одинаковые числа, вынести в отдельную функцию
+            bool allEqual = true;
+            for (int i = 0; i < chips.Count; i++)
+            {
+                if (chips[i] != average)
+                {
+                    allEqual = false;
+                    break;
+                }
+            }
+
+            if (allEqual) //все места имеют однаковое кол-во фишек
+            {
+                LOG($"Перемещения ненужны, у каждого места одинаковое количество фишек");
+                return;
+            }
+
+            #region govno-code, need change mind... 
+            //вынести в отдельные функции
+            while (chips.Any(x => x != average)) //перебираем фишки и сравниваем с средним количеством
+            {
+                moves += 1;
+                int max = chips.Max();
+                int indOfMax = chips.IndexOf(max);
+
+                int movementIndex = indOfMax;
+                int stepsToNext = 0; //шаги вперед
+                int stepsToBack = 0; //шаги назад
+
+                while (true)
+                {
+                    movementIndex += 1;
+                    stepsToNext += 1;
+
+                    if (movementIndex == chips.Count) //если достигли конца списка, переходим к началу
+                        movementIndex = 0;
+
+                    if (chips[movementIndex] < average) //если нашли место, где фишек меньше среднего - выходим из цикла
+                        break;
+                }
+
+                movementIndex = indOfMax; //сбрасываем индекс перемещения к индексу макс.фишки
+
+                while (true)
+                {
+                    movementIndex -= 1;
+                    stepsToBack += 1;
+
+                    if (movementIndex == -1) //если достигли начала списка, переходим к концу
+                        movementIndex = chips.Count - 1;
+
+                    if (chips[movementIndex] < average) //если нашли место, где фишек среднего - выходим из цикла
+                        break;
+                }
+
+                //сравниваем кол-во шагов вперед и назад и выполняем перемещение
+                if (stepsToNext < stepsToBack)
+                {
+                    int nextInd = indOfMax + 1;
+                    if (nextInd == chips.Count)
+                        nextInd = 0;
+
+                    chips[indOfMax] -= 1;
+                    chips[nextInd] += 1;
+                }
+                else if (stepsToBack <= stepsToNext)
+                {
+                    int nextInd = indOfMax - 1;
+                    if (nextInd == -1)
+                        nextInd = chips.Count - 1;
+
+                    chips[indOfMax] -= 1;
+                    chips[nextInd] += 1;
+                }
+            }
+            #endregion
+
+            Console.WriteLine($"Минимальное количество перемещений: {moves}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Произошла ошибка: {ex.Message}");
+        }
+
+        static void LOG(string text) 
+        {
+            Console.WriteLine(text);
+        }
+    }
+    #region некорректная логика функций
+/*    static void Main(string[] args)
+    {
+        try
+        {
+            *//*int places = GetValueForPlacesAndChips($"Введите количество мест за столом: ");
+            int[] chips = GetChips(places);*//*
             Console.WriteLine("Введите количество фишек для каждого места через пробел:");
             string input = Console.ReadLine();
             int[] chips = Array.ConvertAll(input.Split(' '), int.Parse);
@@ -49,7 +164,7 @@ class Program
     }
 
     #region был создан механизм лучше
-    /*    static int GetValueForPlacesAndChips(string message)
+    *//*    static int GetValueForPlacesAndChips(string message)
         {
             Console.WriteLine(message);
             if (!int.TryParse(Console.ReadLine(), out int result) || result < 0)
@@ -65,7 +180,7 @@ class Program
                 chips[i] = GetValueForPlacesAndChips($"Введите количество фишек для места {i + 1}:");
             }
             return chips;
-        }*/
+        }*//*
     #endregion
 
     static int CalculateMinValues(int[] chips)
@@ -119,5 +234,6 @@ class Program
             }
         }
         return moves;
-    }
+    }*/
+    #endregion
 }
